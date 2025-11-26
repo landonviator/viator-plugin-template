@@ -1,0 +1,73 @@
+//
+// Created by Landon Viator on 11/24/25.
+//
+
+#pragma once
+#include <juce_audio_utils/juce_audio_utils.h>
+
+namespace viator::globals
+{
+    struct Oversampling
+    {
+        static inline const juce::StringArray items = {"Off", "2X", "4X", "8X", "16X"};
+    };
+
+    struct MidSide
+    {
+        static inline const juce::StringArray items = {"Stereo", "Mid", "Sides"};
+    };
+
+    struct ActionMessages
+    {
+        static inline const juce::String infoToggled = {"infoToggled"};
+        static inline const juce::String presetAToggled = {"presetAToggled"};
+        static inline const juce::String presetBToggled = {"presetBToggled"};
+    };
+
+    namespace PluginParameters
+    {
+        inline const juce::String gainID = "gainID";
+        inline const juce::String gainName = "Input";
+
+        inline const juce::String outputID = "outputID";
+        inline const juce::String outputName = "Output";
+
+        inline const juce::String oversamplingID = "oversamplingID";
+        inline const juce::String oversamplingName = "HQ";
+
+        inline const juce::String midSideID = "midSideID";
+        inline const juce::String midSideName = "MidSide";
+
+        inline const juce::String globalPowerID = "globalPowerID";
+        inline const juce::String globalPowerName = "Power";
+
+        struct parameters
+        {
+            explicit parameters(const juce::AudioProcessorValueTreeState &tree)
+            {
+                gainParam = dynamic_cast<juce::AudioParameterFloat *>(
+                    tree.getParameter(PluginParameters::gainID));
+                outputParam = dynamic_cast<juce::AudioParameterFloat *>(
+                    tree.getParameter(PluginParameters::outputID));
+
+                oversamplingParam = dynamic_cast<juce::AudioParameterChoice *>(
+                    tree.getParameter(PluginParameters::oversamplingID));
+                midSideParam = dynamic_cast<juce::AudioParameterChoice *>(
+                    tree.getParameter(PluginParameters::midSideID));
+                powerParam = dynamic_cast<juce::AudioParameterBool *>(
+                    tree.getParameter(PluginParameters::globalPowerID));
+            }
+
+            juce::AudioParameterFloat *gainParam{nullptr};
+            juce::AudioParameterFloat *outputParam{nullptr};
+
+            juce::AudioParameterChoice *oversamplingParam{nullptr};
+            juce::AudioParameterChoice *midSideParam{nullptr};
+            juce::AudioParameterBool *powerParam {nullptr};
+
+            std::vector<juce::String>& getControlParamIDs() { return m_param_ids; }
+        private:
+            std::vector<juce::String> m_param_ids {gainID, outputID};
+        };
+    }
+}
