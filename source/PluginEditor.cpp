@@ -15,6 +15,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     initSliders();
 
+    initMeters();
+    startTimerHz(30.0f);
+
     setSize(1230, 730);
 }
 
@@ -25,6 +28,8 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
     for (auto &slider: m_sliders) {
         slider.setLookAndFeel(nullptr);
     }
+
+    stopTimer();
 }
 
 //==============================================================================
@@ -48,6 +53,13 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g)
         const auto name = m_sliders[i].getName();
         m_slider_popup_labels[i].setText(is_over ? juce::String(value, 2) : name, juce::dontSendNotification);
     }
+
+    g.drawImage(viator::gui_utils::Images::texture(), getLocalBounds().toFloat().withSizeKeepingCentre
+    (static_cast<float>(getWidth()) * 0.95f, static_cast<float>(getHeight()) * 0.75f), juce::RectanglePlacement::stretchToFit);
+
+    g.setColour(juce::Colour(52, 76, 100).withAlpha(0.8f));
+    g.fillRect(getLocalBounds().toFloat().withSizeKeepingCentre
+    (static_cast<float>(getWidth()) * 0.95f, static_cast<float>(getHeight()) * 0.75f));
 }
 
 void AudioPluginAudioProcessorEditor::resized()
@@ -62,6 +74,11 @@ void AudioPluginAudioProcessorEditor::resized()
     m_sliders[0].setBounds(dial_size, dial_y, dial_size, dial_size);
     m_sliders[1].setBounds(getWidth() - dial_size * 2, dial_y, dial_size, dial_size);
 
+    m_input_meter.setBounds(m_sliders[0].getRight() + dial_size / 4, dial_y, dial_size / 5,
+                            juce::roundToInt(dial_size * 0.95));
+    m_output_meter.setBounds(m_sliders[1].getX() - dial_size / 2, dial_y, dial_size / 5,
+                             juce::roundToInt(dial_size * 0.95));
+
     m_slider_popup_labels[0].setBounds(0, dial_y, dial_size, dial_size);
     m_slider_popup_labels[1].setBounds(getWidth() - dial_size, dial_y, dial_size, dial_size);
 
@@ -75,9 +92,10 @@ void AudioPluginAudioProcessorEditor::initSliders()
     for (auto &slider: m_sliders) {
         slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        slider.setColour(juce::Slider::ColourIds::thumbColourId, juce::Colour(100, 100, 100));
+        slider.setColour(juce::Slider::ColourIds::thumbColourId, viator::gui_utils::Colors::text());
         slider.setColour(juce::Slider::ColourIds::rotarySliderFillColourId, juce::Colour(234, 234, 234));
-        slider.setColour(juce::Slider::ColourIds::rotarySliderOutlineColourId, juce::Colour(122, 116, 113));
+        slider.setColour(juce::Slider::ColourIds::rotarySliderOutlineColourId,
+        viator::gui_utils::Colors::widget_center().brighter(0.15f));
         slider.setLookAndFeel(&m_thin_dial_laf);
         addAndMakeVisible(slider);
     }
@@ -147,4 +165,16 @@ void AudioPluginAudioProcessorEditor::save_preset(const juce::String &param, con
                            : processorRef
                            .getPresetB();
     preset_map[param] = paramValue;
+}
+
+void AudioPluginAudioProcessorEditor::initMeters()
+{
+    addAndMakeVisible(m_input_meter);
+    addAndMakeVisible(m_output_meter);
+}
+
+void AudioPluginAudioProcessorEditor::timerCallback()
+{
+    m_input_meter.setLevel(processorRef.getInputLevel(0));
+    m_output_meter.setLevel(processorRef.getOutputLevel(0));
 }

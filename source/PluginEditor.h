@@ -4,9 +4,11 @@
 #include "GUI/Components/Header.h"
 #include "GUI/Components/InfoPanel.h"
 #include "GUI/LookAndFeel/ThinDialLAF.h"
+#include "GUI/Components/LevelMeter.h"
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor, public juce::ActionListener
+class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor, public juce::ActionListener,
+public juce::Timer
 {
 public:
     explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor &);
@@ -35,6 +37,11 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_gain_attach, m_volume_attach;
     viator::gui::laf::DialLAF m_thin_dial_laf;
     void initSliders();
+
+    viator::gui::LevelMeter m_input_meter, m_output_meter;
+
+    void timerCallback() override;
+    void initMeters();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessorEditor)
 };

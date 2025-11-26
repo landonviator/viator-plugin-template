@@ -170,6 +170,16 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
         smoother.reset(sampleRate, 0.02);
         smoother.setCurrentAndTargetValue(1.0f);
     }
+
+    for (auto &level: input_levels)
+    {
+        level.reset(sampleRate, 0.5);
+    }
+
+    for (auto &level: output_levels)
+    {
+        level.reset(sampleRate, 0.5);
+    }
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -216,8 +226,14 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
     updateParameters();
 
+    // POWER
     processPluginPower(buffer);
 
+    // INPUT
+    buffer.applyGain(juce::Decibels::decibelsToGain(m_parameters->gainParam->get()));
+    calculateInputPeakLevel(buffer);
+
+    // MAIN PROCESSING
     m_mid_side_processor.process(buffer, [&](juce::AudioBuffer<float> &b, const int n)
     {
         const auto oversampling_choice = m_parameters->oversamplingParam->getIndex();
@@ -225,6 +241,10 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
             m_processors[static_cast<size_t>(oversampling_choice)].process(b, n);
         }
     });
+
+    // OUTPUT
+    buffer.applyGain(juce::Decibels::decibelsToGain(m_parameters->outputParam->get()));
+    calculateOutputPeakLevel(buffer);
 }
 
 void AudioPluginAudioProcessor::processPluginPower(juce::AudioBuffer<float> &buffer)
@@ -240,6 +260,64 @@ void AudioPluginAudioProcessor::processPluginPower(juce::AudioBuffer<float> &buf
 
     if (m_mute_smoothers[0].getCurrentValue() <= 0.0f)
         return;
+}
+
+void AudioPluginAudioProcessor::calculateInputPeakLevel(const juce::AudioBuffer<float> &buffer)
+{
+    const int numInputChannels = getTotalNumInputChannels();
+    const int numSamples = buffer.getNumSamples();
+
+    for (int ch = 0; ch < numInputChannels; ++ch)
+    {
+        input_levels[ch].skip(numSamples);
+        input_peaks[ch] = buffer.getMagnitude(ch, 0, numSamples);
+
+        if (input_peaks[ch] < input_levels[ch].getCurrentValue())
+            input_levels[ch].setTargetValue(input_peaks[ch]);
+        else
+            input_levels[ch].setCurrentAndTargetValue(input_peaks[ch]);
+    }
+
+    for (int ch = numInputChannels; ch < 2; ++ch)
+    {
+        input_levels[ch].skip(numSamples);
+        input_peaks[ch] = 0.0f;
+        input_levels[ch].setTargetValue(0.0f);
+    }
+}
+
+float AudioPluginAudioProcessor::getInputLevel(const int channel)
+{
+    return input_levels[channel].getNextValue();
+}
+
+void AudioPluginAudioProcessor::calculateOutputPeakLevel(const juce::AudioBuffer<float> &buffer)
+{
+    const int numInputChannels = getTotalNumInputChannels();
+    const int numSamples = buffer.getNumSamples();
+
+    for (int ch = 0; ch < numInputChannels; ++ch)
+    {
+        output_levels[ch].skip(numSamples);
+        output_peaks[ch] = buffer.getMagnitude(ch, 0, numSamples);
+
+        if (output_peaks[ch] < output_levels[ch].getCurrentValue())
+            output_levels[ch].setTargetValue(output_peaks[ch]);
+        else
+            output_levels[ch].setCurrentAndTargetValue(output_peaks[ch]);
+    }
+
+    for (int ch = numInputChannels; ch < 2; ++ch)
+    {
+        output_levels[ch].skip(numSamples);
+        output_peaks[ch] = 0.0f;
+        output_levels[ch].setTargetValue(0.0f);
+    }
+}
+
+float AudioPluginAudioProcessor::getOutputLevel(const int channel)
+{
+    return output_levels[channel].getNextValue();
 }
 
 //==============================================================================

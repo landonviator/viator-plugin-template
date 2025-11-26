@@ -15,6 +15,7 @@ namespace viator::gui_utils
     public:
 
         static const juce::Image &logo() { return images().m_logo; }
+        static const juce::Image &texture() { return images().m_texture; }
 
     private:
 
@@ -29,6 +30,8 @@ namespace viator::gui_utils
     protected:
         juce::Image m_logo{juce::ImageCache::getFromMemory(BinaryData::landon_png,
         BinaryData::landon_pngSize)};
+        juce::Image m_texture{juce::ImageCache::getFromMemory(BinaryData::lightgrayconcretewall_jpg,
+        BinaryData::lightgrayconcretewall_jpgSize)};
 
         JUCE_DECLARE_NON_COPYABLE(Images)
     };
